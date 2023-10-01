@@ -46,6 +46,10 @@ public class RateLimiterImpl implements RateLimiter {
         private List<Instant> requestInstants = new ArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
+            //Fail fast
+            long numberOfAcceptedRequestsX = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
+            if (!(numberOfAcceptedRequestsX < maxLimit))
+                return false;
             try {
                 lock.writeLock().lock();
                 long numberOfAcceptedRequests = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
