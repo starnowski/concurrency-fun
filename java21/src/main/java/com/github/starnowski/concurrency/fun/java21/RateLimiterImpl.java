@@ -33,59 +33,6 @@ public class RateLimiterImpl implements RateLimiter {
         Instant instant = this.clock.instant();
         Instant beginningOfSlice = instant.minus(this.slicePeriod);
         WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
-//        long numberOfAcceptedRequests = workUnit.requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
-//        if (numberOfAcceptedRequests < maxLimit) {
-//            try {
-//                workUnit.lock.readLock().tryLock(10, TimeUnit.SECONDS);
-//                numberOfAcceptedRequests = workUnit.requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
-//                if (!(numberOfAcceptedRequests < maxLimit))
-//                    return false;
-//                try {
-//                    workUnit.lock.writeLock().lock();
-//                    workUnit.requestInstants.add(instant);
-//
-//                    Iterator<Instant> it = workUnit.requestInstants.iterator();
-//                    while (it.hasNext()) {
-//                        Instant current = it.next();
-//                        if (current.isBefore(beginningOfSlice)) {
-//                            it.remove();
-//                        }
-//                    }
-//                } finally {
-//                    workUnit.lock.writeLock().unlock();
-//                }
-//                return true;
-//                //TODO unlock
-//            } catch (InterruptedException e) {
-//                return false;
-//            } finally {
-////                workUnit.lock.writeLock().v();
-//                workUnit.lock.readLock().unlock();
-//            }
-//            workUnit.requestInstants.add(instant);
-//
-//            Iterator<Instant> it = workUnit.requestInstants.iterator();
-//            while(it.hasNext())  {
-//                Instant current = it.next();
-//                if (current.isBefore(beginningOfSlice)) {
-//                    it.remove();
-//                }
-//            }
-
-//            map.merge(key, new WorkUnit(), (cur, next) -> {
-//                cur.requestInstants.add(instant);
-//
-//                Iterator<Instant> it = cur.requestInstants.iterator();
-//                while (it.hasNext()) {
-//                    Instant current = it.next();
-//                    if (current.isBefore(beginningOfSlice)) {
-//                        it.remove();
-//                    }
-//                }
-//                return cur;
-//            });
-//            return true;
-//        }
         return workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
     }
 
@@ -98,17 +45,8 @@ public class RateLimiterImpl implements RateLimiter {
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         private List<Instant> requestInstants = new ArrayList<>();
 
-        public List<Instant> getRequestInstants() {
-            return requestInstants;
-        }
-
-        public void setRequestInstants(List<Instant> requestInstants) {
-            this.requestInstants = requestInstants;
-        }
-
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             try {
-//                lock.writeLock().tryLock(10, TimeUnit.SECONDS);
                 lock.writeLock().lock();
                 long numberOfAcceptedRequests = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
                 if (!(numberOfAcceptedRequests < maxLimit))
