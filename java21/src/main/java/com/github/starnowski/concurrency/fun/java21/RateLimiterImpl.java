@@ -3,10 +3,7 @@ package com.github.starnowski.concurrency.fun.java21;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -64,12 +61,15 @@ public class RateLimiterImpl implements RateLimiter {
                 requestInstants.add(instant);
 
                 Iterator<Instant> it = requestInstants.iterator();
+                List<Instant> toBeRemoved = new ArrayList<>();
                 while (it.hasNext()) {
                     Instant current = it.next();
                     if (current.isBefore(beginningOfSlice)) {
-                        it.remove();
+//                        it.remove();
+                        toBeRemoved.add(current);
                     }
                 }
+                requestInstants.removeAll(toBeRemoved);
                 return true;
             } finally {
                 if (lockAcquired) {
