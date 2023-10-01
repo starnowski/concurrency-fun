@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RateLimiterImpl implements RateLimiter {
@@ -43,7 +44,7 @@ public class RateLimiterImpl implements RateLimiter {
     private static class WorkUnit {
 
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        private List<Instant> requestInstants = new ArrayList<>();
+        private List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             //Fail fast
