@@ -3,12 +3,13 @@ package com.github.starnowski.concurrency.fun.java21;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RateLimiterImpl implements RateLimiter {
@@ -44,15 +45,19 @@ public class RateLimiterImpl implements RateLimiter {
     private static class WorkUnit {
 
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        private List<Instant> requestInstants = new CopyOnWriteArrayList<>();
+        private final List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             //Fail fast
             long numberOfAcceptedRequestsX = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
             if (!(numberOfAcceptedRequestsX < maxLimit))
                 return false;
+            boolean lockAcquired = false;
             try {
-                lock.writeLock().lock();
+                lockAcquired = tryAcquireLock(3);
+                if (!lockAcquired) {
+                    return false;
+                }
                 long numberOfAcceptedRequests = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
                 if (!(numberOfAcceptedRequests < maxLimit))
                     return false;
@@ -67,8 +72,26 @@ public class RateLimiterImpl implements RateLimiter {
                 }
                 return true;
             } finally {
-                lock.writeLock().unlock();
+                if (lockAcquired) {
+                    lock.writeLock().unlock();
+                }
             }
+        }
+
+        private boolean tryAcquireLock(int retry) {
+            Random random = new Random();
+            int multiply = random.nextInt(10);
+            boolean result = false;
+            for (int i = 0; i < retry; i++) {
+                try {
+                    result = lock.writeLock().tryLock(100 * multiply, TimeUnit.SECONDS);
+                    if (result)
+                        break;
+                } catch (InterruptedException e) {
+                    // do nothing
+                }
+            }
+            return result;
         }
 
     }
