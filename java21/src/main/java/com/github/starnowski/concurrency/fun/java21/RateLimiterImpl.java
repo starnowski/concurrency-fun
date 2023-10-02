@@ -14,6 +14,15 @@ public class RateLimiterImpl implements RateLimiter {
     private final Clock clock;
     private final int maxLimit;
     private final Duration slicePeriod;
+
+    /**
+     * For tests purpose
+     * @return
+     */
+    ConcurrentHashMap<Key, WorkUnit> getMap() {
+        return map;
+    }
+
     private final ConcurrentHashMap<Key, WorkUnit> map = new ConcurrentHashMap<>();
 
     public RateLimiterImpl(Clock clock) {
@@ -35,13 +44,23 @@ public class RateLimiterImpl implements RateLimiter {
         return workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
     }
 
-    private Key prepareKey(String userAgent, String ipAddress) {
+    public void cleanOldWorkUnits()
+    {
+        //TODO
+    }
+
+    static Key prepareKey(String userAgent, String ipAddress) {
         return new Key(userAgent, ipAddress);
     }
 
-    private static class WorkUnit {
+    static class WorkUnit {
 
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
+        List<Instant> getRequestInstants() {
+            return requestInstants;
+        }
+
         private final List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
@@ -96,7 +115,7 @@ public class RateLimiterImpl implements RateLimiter {
 
     }
 
-    private static final class Key {
+    static final class Key {
         private final String userAgent;
         private final String ipAddress;
 
