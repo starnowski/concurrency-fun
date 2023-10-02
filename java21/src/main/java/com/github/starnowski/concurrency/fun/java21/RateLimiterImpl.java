@@ -46,7 +46,18 @@ public class RateLimiterImpl implements RateLimiter {
 
     public void cleanOldWorkUnits()
     {
-        //TODO
+        Instant instant = this.clock.instant();
+        Instant beginningOfSlice = instant.minus(this.slicePeriod);
+        List<Key> keysToBeDeleted = new ArrayList<>();
+        for (Map.Entry<Key, WorkUnit> entry : map.entrySet()) {
+            long numberOfValidRequests = entry.getValue().getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
+            if (numberOfValidRequests == 0) {
+                keysToBeDeleted.add(entry.getKey());
+            }
+        }
+        for (Key key: keysToBeDeleted) {
+            map.remove(key);
+        }
     }
 
     static Key prepareKey(String userAgent, String ipAddress) {

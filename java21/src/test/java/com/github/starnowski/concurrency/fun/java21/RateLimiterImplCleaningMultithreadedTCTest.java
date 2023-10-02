@@ -25,16 +25,19 @@ public class RateLimiterImplCleaningMultithreadedTCTest extends MultithreadedTes
         rateLimiter.getMap().put(RateLimiterImpl.prepareKey(userAgent, ipAddress), workUnit);
     }
     public void thread1() {
-        rateResult = rateLimiter.canAccept(userAgent, ipAddress);
+//        rateResult = rateLimiter.canAccept(userAgent, ipAddress);
+        rateLimiter.cleanOldWorkUnits();
     }
     public void thread2() {
-        rateLimiter.cleanOldWorkUnits();
+//        rateLimiter.cleanOldWorkUnits();
+        rateResult = rateLimiter.canAccept(userAgent, ipAddress);
     }
     @Override
     public void finish() {
         ConcurrentHashMap<RateLimiterImpl.Key, RateLimiterImpl.WorkUnit> map = rateLimiter.getMap();
         RateLimiterImpl.WorkUnit workUnit = map.get(RateLimiterImpl.prepareKey(userAgent, ipAddress));
         assertEquals(1, workUnit.getRequestInstants().size());
+        assertTrue(rateResult);
     }
 
     @Test
