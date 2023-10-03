@@ -70,11 +70,17 @@ public class RateLimiterImpl implements RateLimiter {
         for (Key key: keysToBeDeleted) {
             WorkUnit workUnit = map.get(key);
             if (workUnit != null) {
+                boolean lockAcquired = false;
                 try {
-                    workUnit.lock.writeLock().lock();//TODO use timeout
+                    lockAcquired = workUnit.tryAcquireLock(3);
+                    if (!lockAcquired) {
+                        continue;
+                    }
                     map.remove(key);
                 } finally {
-                    workUnit.lock.writeLock().unlock();
+                    if (lockAcquired) {
+                        workUnit.lock.writeLock().unlock();
+                    }
                 }
             }
         }
