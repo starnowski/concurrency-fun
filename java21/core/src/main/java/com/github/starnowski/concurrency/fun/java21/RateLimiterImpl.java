@@ -37,11 +37,23 @@ public class RateLimiterImpl implements RateLimiter {
 
     @Override
     public boolean canAccept(String userAgent, String ipAddress) {
-        Key key = prepareKey(userAgent, ipAddress);
-        Instant instant = this.clock.instant();
-        Instant beginningOfSlice = instant.minus(this.slicePeriod);
-        WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
-        return workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
+        return canAccept(userAgent, ipAddress, 2);
+    }
+
+    private boolean canAccept(String userAgent, String ipAddress, int retries) {
+        for (int attempt = 0; attempt < retries; attempt++) {
+            Key key = prepareKey(userAgent, ipAddress);
+            Instant instant = this.clock.instant();
+            Instant beginningOfSlice = instant.minus(this.slicePeriod);
+            WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
+            boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
+            if (result) {
+                if (map.get(key) == workUnit) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public void cleanOldWorkUnits()
@@ -56,7 +68,15 @@ public class RateLimiterImpl implements RateLimiter {
             }
         }
         for (Key key: keysToBeDeleted) {
-            map.remove(key);
+            WorkUnit workUnit = map.get(key);
+            if (workUnit != null) {
+                try {
+                    workUnit.lock.writeLock().lock();//TODO use timeout
+                    map.remove(key);
+                } finally {
+                    workUnit.lock.writeLock().unlock();
+                }
+            }
         }
     }
 
