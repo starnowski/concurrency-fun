@@ -15,6 +15,7 @@ import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 @JCStressTest
 @Outcome(id = "1", expect = ACCEPTABLE, desc = "Only one rate accepted.")
 @Outcome(id = "0", expect = FORBIDDEN, desc = "No rate accepted")
+@Outcome(id = "-1", expect = FORBIDDEN, desc = "Work unit is null")
 @State
 public class RateLimiterImplCleaningJCStressTest {
 
@@ -46,6 +47,13 @@ public class RateLimiterImplCleaningJCStressTest {
     public void arbiter(I_Result r) {
         ConcurrentHashMap<RateLimiterImpl.Key, RateLimiterImpl.WorkUnit> map = rateLimiter.getMap();
         RateLimiterImpl.WorkUnit workUnit = map.get(RateLimiterImpl.prepareKey(userAgent, ipAddress));
-        r.r1 = (int) (workUnit == null ? 0 : workUnit.getRequestInstants().size());
+        if (workUnit != null && workUnit.getRequestInstants().size() == 1) {
+            r.r1 = 1;
+        } else if (workUnit == null) {
+            r.r1 = -1;
+        } else {
+            r.r1 = 0;
+        }
+//        r.r1 = (int) (workUnit == null ? 0 : workUnit.getRequestInstants().size());
     }
 }
