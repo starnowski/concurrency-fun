@@ -5,8 +5,8 @@ import org.openjdk.jcstress.infra.results.I_Result;
 
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.openjdk.jcstress.annotations.Expect.*;
+import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
+import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 
 @JCStressTest
 @Outcome(id = "1", expect = ACCEPTABLE, desc = "One update lost.")
@@ -17,7 +17,7 @@ public class RateLimiterImplJCStressTest {
     private static final String userAgent = "15";
     private static final String ipAddress = "0.0.0.0";
     private RateLimiter rateLimiter;
-    private Boolean[] rateResults = new Boolean[2];
+    private final Boolean[] rateResults = new Boolean[2];
 
     @Actor
     public void actor1() {
