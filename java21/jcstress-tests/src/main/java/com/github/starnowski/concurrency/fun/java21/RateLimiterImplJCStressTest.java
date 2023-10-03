@@ -3,6 +3,8 @@ package com.github.starnowski.concurrency.fun.java21;
 import org.openjdk.jcstress.annotations.*;
 import org.openjdk.jcstress.infra.results.I_Result;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.stream.Stream;
 
 import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
@@ -16,7 +18,7 @@ public class RateLimiterImplJCStressTest {
 
     private static final String userAgent = "15";
     private static final String ipAddress = "0.0.0.0";
-    private RateLimiter rateLimiter;
+    private RateLimiter rateLimiter = new RateLimiterImpl(Clock.systemUTC(), 1, Duration.ofSeconds(60));
     private final Boolean[] rateResults = new Boolean[2];
 
     @Actor
