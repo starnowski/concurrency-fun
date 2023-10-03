@@ -72,11 +72,14 @@ public class RateLimiterImpl implements RateLimiter {
             if (workUnit != null) {
                 boolean lockAcquired = false;
                 try {
-                    lockAcquired = workUnit.tryAcquireLock(3);
+                    lockAcquired = workUnit.tryAcquireLock(1);
                     if (!lockAcquired) {
                         continue;
                     }
-                    map.remove(key);
+                    long numberOfValidRequests = workUnit.getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
+                    if (numberOfValidRequests == 0) {
+                        map.remove(key);
+                    }
                 } finally {
                     if (lockAcquired) {
                         workUnit.lock.writeLock().unlock();
@@ -140,7 +143,7 @@ public class RateLimiterImpl implements RateLimiter {
             boolean result = false;
             for (int i = 0; i < retry; i++) {
                 try {
-                    result = lock.writeLock().tryLock(100 * multiply, TimeUnit.SECONDS);
+                    result = lock.writeLock().tryLock(100 * multiply, TimeUnit.MILLISECONDS);
                     if (result)
                         break;
                 } catch (InterruptedException e) {
