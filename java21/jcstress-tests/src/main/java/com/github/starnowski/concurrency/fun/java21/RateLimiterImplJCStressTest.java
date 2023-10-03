@@ -11,8 +11,8 @@ import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
 import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 
 @JCStressTest
-@Outcome(id = "1", expect = ACCEPTABLE, desc = "One update lost.")
-@Outcome(id = "2", expect = FORBIDDEN, desc = "Both updates.")
+@Outcome(id = "1", expect = ACCEPTABLE, desc = "Only one rate accepted.")
+@Outcome(id = "2", expect = FORBIDDEN, desc = "Two rates were accepted no matter the limit of the one rate.")
 @State
 public class RateLimiterImplJCStressTest {
 
