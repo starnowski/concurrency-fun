@@ -38,7 +38,7 @@ public class RateLimiterImpl implements RateLimiter {
 
     @Override
     public boolean canAccept(String userAgent, String ipAddress) {
-        return canAccept(userAgent, ipAddress, 4);
+        return canAccept(userAgent, ipAddress, 10);
     }
 
     private boolean canAccept(String userAgent, String ipAddress, int retries) {
