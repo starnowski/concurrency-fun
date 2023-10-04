@@ -128,7 +128,7 @@ public class RateLimiterImpl implements RateLimiter {
             return requestInstants;
         }
 
-        private volatile List<Instant> requestInstants = new CopyOnWriteArrayList<>();
+        private final List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             //Fail fast
