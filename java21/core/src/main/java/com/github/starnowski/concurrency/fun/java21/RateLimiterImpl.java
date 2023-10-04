@@ -121,7 +121,7 @@ public class RateLimiterImpl implements RateLimiter {
                 return false;
             boolean lockAcquired = false;
             try {
-                lockAcquired = tryAcquireLock(3);
+                lockAcquired = tryAcquireLock(11);
                 if (!lockAcquired) {
                     return false;
                 }
@@ -170,7 +170,7 @@ public class RateLimiterImpl implements RateLimiter {
             boolean result = false;
             for (int i = 0; i < retry; i++) {
                 try {
-                    result = lock.readLock().tryLock(100 * multiply, TimeUnit.MILLISECONDS);
+                    result = lock.readLock().tryLock(50 * multiply, TimeUnit.MILLISECONDS);
                     if (result)
                         break;
                 } catch (InterruptedException e) {
