@@ -3,11 +3,13 @@ package com.github.starnowski.concurrency.fun.java21;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static java.util.stream.Collectors.toList;
 
 public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
 
@@ -25,13 +27,30 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
         this.maxLimit = maxLimit;
         this.slicePeriod = slicePeriod;
     }
-    @Override
-    public boolean canAccept(String userAgent, String ipAddress) {
-        return false;
-    }
 
     static Key prepareKey(String userAgent, String ipAddress) {
         return new Key(userAgent, ipAddress);
+    }
+
+    @Override
+    public boolean canAccept(String userAgent, String ipAddress) {
+        Key key = prepareKey(userAgent, ipAddress);
+        Instant instant = this.clock.instant();
+        Instant beginningOfSlice = instant.minus(this.slicePeriod);
+        WorkUnit workUnit = new WorkUnit();
+        RequestInstantWithUUID ri = new RequestInstantWithUUID(instant, UUID.randomUUID());
+        workUnit.getRequestInstants().add(ri);
+        WorkUnit currentUnit = map.merge(key, workUnit, (workUnit1, workUnit2) -> {
+            long numberOfAcceptedRequestsX = workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).count();
+            if (numberOfAcceptedRequestsX >= maxLimit) {
+                return workUnit1;
+            }
+            WorkUnit newWorkUnit = new WorkUnit();
+            newWorkUnit.getRequestInstants().addAll(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
+            newWorkUnit.getRequestInstants().addAll(workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
+            return newWorkUnit;
+        });
+        return currentUnit.getRequestInstants().stream().anyMatch(unit -> ri.getUuid().equals(unit.getUuid()));
     }
 
     /**
@@ -44,12 +63,29 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
     }
 
     static class WorkUnit {
+        //TODO do immutable object
+        private final List<RequestInstantWithUUID> requestInstants = new ArrayList<>();
 
-        private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        private final List<Instant> requestInstants = new ArrayList<>();
-
-        List<Instant> getRequestInstants() {
+        List<RequestInstantWithUUID> getRequestInstants() {
             return requestInstants;
+        }
+    }
+
+    static class RequestInstantWithUUID {
+        private final Instant instant;
+        private final UUID uuid;
+
+        public RequestInstantWithUUID(Instant instant, UUID uuid) {
+            this.instant = instant;
+            this.uuid = uuid;
+        }
+
+        public Instant getInstant() {
+            return instant;
+        }
+
+        public UUID getUuid() {
+            return uuid;
         }
     }
 
