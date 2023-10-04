@@ -14,7 +14,7 @@ public class RateLimiterImpl implements RateLimiter {
     private final Clock clock;
     private final int maxLimit;
     private final Duration slicePeriod;
-    private final ReentrantReadWriteLock mapLock = new ReentrantReadWriteLock();
+//    private final ReentrantReadWriteLock mapLock = new ReentrantReadWriteLock();
 
     /**
      * For tests purpose
@@ -47,16 +47,20 @@ public class RateLimiterImpl implements RateLimiter {
             Instant instant = this.clock.instant();
             Instant beginningOfSlice = instant.minus(this.slicePeriod);
             try {
-                mapLock.readLock().lock();
+//                mapLock.readLock().lock();
                 WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
                 boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
                 if (result) {
-                    if (map.get(key) == workUnit) {
+//                    if (map.get(key) == workUnit) {
+//                        return true;
+//                    }
+                    WorkUnit currentValue = map.putIfAbsent(key, workUnit);
+                    if (workUnit == currentValue) {
                         return true;
                     }
                 }
             } finally {
-                mapLock.readLock().unlock();
+//                mapLock.readLock().unlock();
             }
         }
         return false;
@@ -85,29 +89,30 @@ public class RateLimiterImpl implements RateLimiter {
             }
         }
         try {
-            mapLock.writeLock().lock();
+//            mapLock.writeLock().lock();
             for (Key key : keysToBeDeleted) {
                 WorkUnit workUnit = map.get(key);
                 if (workUnit != null) {
                     boolean lockAcquired = false;
                     try {
-                        lockAcquired = workUnit.tryAcquireLock(1);
+                        lockAcquired = workUnit.tryAcquireReadLock(1);
                         if (!lockAcquired) {
                             continue;
                         }
                         long numberOfValidRequests = workUnit.getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
                         if (numberOfValidRequests == 0) {
-                            map.remove(key);
+//                            map.remove(key);
+                            map.remove(key, workUnit);
                         }
                     } finally {
                         if (lockAcquired) {
-                            workUnit.lock.writeLock().unlock();
+                            workUnit.lock.readLock().unlock();
                         }
                     }
                 }
             }
         } finally {
-            mapLock.writeLock().unlock();
+//            mapLock.writeLock().unlock();
         }
     }
 
@@ -181,7 +186,7 @@ public class RateLimiterImpl implements RateLimiter {
             boolean result = false;
             for (int i = 0; i < retry; i++) {
                 try {
-                    result = lock.readLock().tryLock(50 * multiply, TimeUnit.MILLISECONDS);
+                    result = lock.readLock().tryLock(10 * multiply, TimeUnit.MILLISECONDS);
                     if (result)
                         break;
                 } catch (InterruptedException e) {
