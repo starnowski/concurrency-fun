@@ -38,14 +38,14 @@ public class RateLimiterImpl implements RateLimiter {
 
     @Override
     public boolean canAccept(String userAgent, String ipAddress) {
-        return canAccept(userAgent, ipAddress, 2);
+        return canAccept(userAgent, ipAddress, 4);
     }
 
     private boolean canAccept(String userAgent, String ipAddress, int retries) {
+        Key key = prepareKey(userAgent, ipAddress);
+        Instant instant = this.clock.instant();
+        Instant beginningOfSlice = instant.minus(this.slicePeriod);
         for (int attempt = 0; attempt < retries; attempt++) {
-            Key key = prepareKey(userAgent, ipAddress);
-            Instant instant = this.clock.instant();
-            Instant beginningOfSlice = instant.minus(this.slicePeriod);
             try {
 //                mapLock.readLock().lock();
                 WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
@@ -128,7 +128,7 @@ public class RateLimiterImpl implements RateLimiter {
             return requestInstants;
         }
 
-        private final List<Instant> requestInstants = new CopyOnWriteArrayList<>();
+        private volatile List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             //Fail fast
