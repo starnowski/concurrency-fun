@@ -14,6 +14,7 @@ import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 @Outcome(id = "1", expect = ACCEPTABLE, desc = "Only one rate accepted.")
 @Outcome(id = "2", expect = FORBIDDEN, desc = "Two rates were accepted no matter the limit of the one rate.")
 @State
+@Description("RateLimiter is executed by two actors that are trying to accept its rate with the same input")
 public class RateLimiterImplJCStressTest {
 
     private static final String userAgent = "15";

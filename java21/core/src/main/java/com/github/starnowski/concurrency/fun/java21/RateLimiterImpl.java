@@ -14,16 +14,6 @@ public class RateLimiterImpl implements RateLimiter {
     private final Clock clock;
     private final int maxLimit;
     private final Duration slicePeriod;
-//    private final ReentrantReadWriteLock mapLock = new ReentrantReadWriteLock();
-
-    /**
-     * For tests purpose
-     * @return
-     */
-    ConcurrentHashMap<Key, WorkUnit> getMap() {
-        return map;
-    }
-
     private final ConcurrentHashMap<Key, WorkUnit> map = new ConcurrentHashMap<>();
 
     public RateLimiterImpl(Clock clock) {
@@ -36,6 +26,19 @@ public class RateLimiterImpl implements RateLimiter {
         this.slicePeriod = slicePeriod;
     }
 
+    static Key prepareKey(String userAgent, String ipAddress) {
+        return new Key(userAgent, ipAddress);
+    }
+
+    /**
+     * For tests purpose
+     *
+     * @return
+     */
+    ConcurrentHashMap<Key, WorkUnit> getMap() {
+        return map;
+    }
+
     @Override
     public boolean canAccept(String userAgent, String ipAddress) {
         return canAccept(userAgent, ipAddress, 10);
@@ -46,28 +49,19 @@ public class RateLimiterImpl implements RateLimiter {
         Instant instant = this.clock.instant();
         Instant beginningOfSlice = instant.minus(this.slicePeriod);
         for (int attempt = 0; attempt < retries; attempt++) {
-            try {
-//                mapLock.readLock().lock();
-                WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
-                boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
-                if (result) {
-//                    if (map.get(key) == workUnit) {
-//                        return true;
-//                    }
-                    WorkUnit currentValue = map.putIfAbsent(key, workUnit);
-                    if (workUnit == currentValue) {
-                        return true;
-                    }
+            WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
+            boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
+            if (result) {
+                WorkUnit currentValue = map.putIfAbsent(key, workUnit);
+                if (workUnit == currentValue) {
+                    return true;
                 }
-            } finally {
-//                mapLock.readLock().unlock();
             }
         }
         return false;
     }
 
-    public void cleanOldWorkUnits()
-    {
+    public void cleanOldWorkUnits() {
         Instant instant = this.clock.instant();
         Instant beginningOfSlice = instant.minus(this.slicePeriod);
         List<Key> keysToBeDeleted = new ArrayList<>();
@@ -88,47 +82,37 @@ public class RateLimiterImpl implements RateLimiter {
                 }
             }
         }
-        try {
-//            mapLock.writeLock().lock();
-            for (Key key : keysToBeDeleted) {
-                WorkUnit workUnit = map.get(key);
-                if (workUnit != null) {
-                    boolean lockAcquired = false;
-                    try {
-                        lockAcquired = workUnit.tryAcquireReadLock(1);
-                        if (!lockAcquired) {
-                            continue;
-                        }
-                        long numberOfValidRequests = workUnit.getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
-                        if (numberOfValidRequests == 0) {
+        for (Key key : keysToBeDeleted) {
+            WorkUnit workUnit = map.get(key);
+            if (workUnit != null) {
+                boolean lockAcquired = false;
+                try {
+                    lockAcquired = workUnit.tryAcquireReadLock(1);
+                    if (!lockAcquired) {
+                        continue;
+                    }
+                    long numberOfValidRequests = workUnit.getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
+                    if (numberOfValidRequests == 0) {
 //                            map.remove(key);
-                            map.remove(key, workUnit);
-                        }
-                    } finally {
-                        if (lockAcquired) {
-                            workUnit.lock.readLock().unlock();
-                        }
+                        map.remove(key, workUnit);
+                    }
+                } finally {
+                    if (lockAcquired) {
+                        workUnit.lock.readLock().unlock();
                     }
                 }
             }
-        } finally {
-//            mapLock.writeLock().unlock();
         }
-    }
-
-    static Key prepareKey(String userAgent, String ipAddress) {
-        return new Key(userAgent, ipAddress);
     }
 
     static class WorkUnit {
 
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        private final List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         List<Instant> getRequestInstants() {
             return requestInstants;
         }
-
-        private final List<Instant> requestInstants = new CopyOnWriteArrayList<>();
 
         public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             //Fail fast

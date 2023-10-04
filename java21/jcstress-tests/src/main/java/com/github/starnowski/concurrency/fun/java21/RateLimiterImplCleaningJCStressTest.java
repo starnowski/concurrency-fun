@@ -19,6 +19,7 @@ import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 @Outcome(id = "-2", expect = FORBIDDEN, desc = "Work unit is null and rate was not even accepted")
 @Outcome(id = "-3", expect = FORBIDDEN, desc = "Work unit is null and second actor was not invoked")
 @State
+@Description("RateLimiter is executed by one actor that is trying to accept its request and another actor tries to clean old work units for which one of them contains the key that represents the request that the other actor is trying to accept")
 public class RateLimiterImplCleaningJCStressTest {
 
     private static final String userAgent = "15";
