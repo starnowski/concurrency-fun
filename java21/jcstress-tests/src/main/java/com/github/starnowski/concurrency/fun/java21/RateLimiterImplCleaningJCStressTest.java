@@ -63,6 +63,5 @@ public class RateLimiterImplCleaningJCStressTest {
         } else {
             r.r1 = 0;
         }
-//        r.r1 = (int) (workUnit == null ? 0 : workUnit.getRequestInstants().size());
     }
 }
