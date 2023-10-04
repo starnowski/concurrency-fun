@@ -62,9 +62,20 @@ public class RateLimiterImpl implements RateLimiter {
         Instant beginningOfSlice = instant.minus(this.slicePeriod);
         List<Key> keysToBeDeleted = new ArrayList<>();
         for (Map.Entry<Key, WorkUnit> entry : map.entrySet()) {
-            long numberOfValidRequests = entry.getValue().getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
-            if (numberOfValidRequests == 0) {
-                keysToBeDeleted.add(entry.getKey());
+            boolean lockAcquired = false;
+            try {
+                lockAcquired = entry.getValue().tryAcquireReadLock(1);
+                if (!lockAcquired) {
+                    continue;
+                }
+                long numberOfValidRequests = entry.getValue().getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
+                if (numberOfValidRequests == 0) {
+                    keysToBeDeleted.add(entry.getKey());
+                }
+            } finally {
+                if (lockAcquired) {
+                    entry.getValue().lock.readLock().unlock();
+                }
             }
         }
         for (Key key: keysToBeDeleted) {
@@ -144,6 +155,22 @@ public class RateLimiterImpl implements RateLimiter {
             for (int i = 0; i < retry; i++) {
                 try {
                     result = lock.writeLock().tryLock(100 * multiply, TimeUnit.MILLISECONDS);
+                    if (result)
+                        break;
+                } catch (InterruptedException e) {
+                    // do nothing
+                }
+            }
+            return result;
+        }
+
+        private boolean tryAcquireReadLock(int retry) {
+            Random random = new Random();
+            int multiply = random.nextInt(10);
+            boolean result = false;
+            for (int i = 0; i < retry; i++) {
+                try {
+                    result = lock.readLock().tryLock(100 * multiply, TimeUnit.MILLISECONDS);
                     if (result)
                         break;
                 } catch (InterruptedException e) {
