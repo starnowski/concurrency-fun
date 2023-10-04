@@ -14,6 +14,7 @@ public class RateLimiterImpl implements RateLimiter {
     private final Clock clock;
     private final int maxLimit;
     private final Duration slicePeriod;
+    private final ReentrantReadWriteLock mapLock = new ReentrantReadWriteLock();
 
     /**
      * For tests purpose
@@ -45,12 +46,17 @@ public class RateLimiterImpl implements RateLimiter {
             Key key = prepareKey(userAgent, ipAddress);
             Instant instant = this.clock.instant();
             Instant beginningOfSlice = instant.minus(this.slicePeriod);
-            WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
-            boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
-            if (result) {
-                if (map.get(key) == workUnit) {
-                    return true;
+            try {
+                mapLock.readLock().lock();
+                WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
+                boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
+                if (result) {
+                    if (map.get(key) == workUnit) {
+                        return true;
+                    }
                 }
+            } finally {
+                mapLock.readLock().unlock();
             }
         }
         return false;
@@ -78,25 +84,30 @@ public class RateLimiterImpl implements RateLimiter {
                 }
             }
         }
-        for (Key key: keysToBeDeleted) {
-            WorkUnit workUnit = map.get(key);
-            if (workUnit != null) {
-                boolean lockAcquired = false;
-                try {
-                    lockAcquired = workUnit.tryAcquireLock(1);
-                    if (!lockAcquired) {
-                        continue;
-                    }
-                    long numberOfValidRequests = workUnit.getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
-                    if (numberOfValidRequests == 0) {
-                        map.remove(key);
-                    }
-                } finally {
-                    if (lockAcquired) {
-                        workUnit.lock.writeLock().unlock();
+        try {
+            mapLock.writeLock().lock();
+            for (Key key : keysToBeDeleted) {
+                WorkUnit workUnit = map.get(key);
+                if (workUnit != null) {
+                    boolean lockAcquired = false;
+                    try {
+                        lockAcquired = workUnit.tryAcquireLock(1);
+                        if (!lockAcquired) {
+                            continue;
+                        }
+                        long numberOfValidRequests = workUnit.getRequestInstants().stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
+                        if (numberOfValidRequests == 0) {
+                            map.remove(key);
+                        }
+                    } finally {
+                        if (lockAcquired) {
+                            workUnit.lock.writeLock().unlock();
+                        }
                     }
                 }
             }
+        } finally {
+            mapLock.writeLock().unlock();
         }
     }
 
