@@ -15,7 +15,9 @@ import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 @JCStressTest
 @Outcome(id = "1", expect = ACCEPTABLE, desc = "Only one rate accepted.")
 @Outcome(id = "0", expect = FORBIDDEN, desc = "No rate accepted")
-@Outcome(id = "-1", expect = FORBIDDEN, desc = "Work unit is null")
+@Outcome(id = "-1", expect = FORBIDDEN, desc = "Work unit is null but rate was accepted")
+@Outcome(id = "-2", expect = FORBIDDEN, desc = "Work unit is null and rate was not even accepted")
+@Outcome(id = "-3", expect = FORBIDDEN, desc = "Work unit is null and second actor was not invoked")
 @State
 public class RateLimiterImplCleaningJCStressTest {
 
@@ -50,7 +52,13 @@ public class RateLimiterImplCleaningJCStressTest {
         if (workUnit != null && workUnit.getRequestInstants().size() == 1) {
             r.r1 = 1;
         } else if (workUnit == null) {
-            r.r1 = -1;
+            if (rateResult == null) {
+                r.r1 = -3;
+            } else if (rateResult) {
+                r.r1 = -1;
+            } else {
+                r.r1 = -2;
+            }
         } else {
             r.r1 = 0;
         }
