@@ -50,12 +50,17 @@ public class RateLimiterImpl implements RateLimiter {
         Instant beginningOfSlice = instant.minus(this.slicePeriod);
         for (int attempt = 0; attempt < retries; attempt++) {
             WorkUnit workUnit = map.computeIfAbsent(key, (k) -> new WorkUnit());
-            boolean result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
-            if (result) {
-                WorkUnit currentValue = map.putIfAbsent(key, workUnit);
-                if (workUnit == currentValue) {
-                    return true;
-                }
+            RegisterRequestResult result = workUnit.tryRegisterRequestWhenCanBeAccepted(instant, beginningOfSlice, maxLimit);
+            switch (result) {
+                case TOO_MANY_REQUESTS:
+                    return false;
+                case FAILED_LOCK_ACQUIRED:
+                    continue;
+                case SUCCESS:
+                    WorkUnit currentValue = map.putIfAbsent(key, workUnit);
+                    if (workUnit == currentValue) {
+                        return true;
+                    }
             }
         }
         return false;
@@ -105,6 +110,12 @@ public class RateLimiterImpl implements RateLimiter {
         }
     }
 
+    private enum RegisterRequestResult {
+        SUCCESS,
+        TOO_MANY_REQUESTS,
+        FAILED_LOCK_ACQUIRED
+    }
+
     static class WorkUnit {
 
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -114,20 +125,20 @@ public class RateLimiterImpl implements RateLimiter {
             return requestInstants;
         }
 
-        public boolean tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
+        private RegisterRequestResult tryRegisterRequestWhenCanBeAccepted(Instant instant, Instant beginningOfSlice, int maxLimit) {
             //Fail fast
             long numberOfAcceptedRequestsX = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
             if (!(numberOfAcceptedRequestsX < maxLimit))
-                return false;
+                return RegisterRequestResult.TOO_MANY_REQUESTS;
             boolean lockAcquired = false;
             try {
                 lockAcquired = tryAcquireLock(11);
                 if (!lockAcquired) {
-                    return false;
+                    return RegisterRequestResult.FAILED_LOCK_ACQUIRED;
                 }
                 long numberOfAcceptedRequests = requestInstants.stream().filter(instant1 -> instant1.isAfter(beginningOfSlice)).count();
                 if (!(numberOfAcceptedRequests < maxLimit))
-                    return false;
+                    return RegisterRequestResult.TOO_MANY_REQUESTS;
                 requestInstants.add(instant);
 
                 Iterator<Instant> it = requestInstants.iterator();
@@ -135,12 +146,11 @@ public class RateLimiterImpl implements RateLimiter {
                 while (it.hasNext()) {
                     Instant current = it.next();
                     if (current.isBefore(beginningOfSlice)) {
-//                        it.remove();
                         toBeRemoved.add(current);
                     }
                 }
                 requestInstants.removeAll(toBeRemoved);
-                return true;
+                return RegisterRequestResult.SUCCESS;
             } finally {
                 if (lockAcquired) {
                     lock.writeLock().unlock();
