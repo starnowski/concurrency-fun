@@ -43,11 +43,8 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
             if (numberOfAcceptedRequestsX >= maxLimit) {
                 return workUnit1;
             }
-//            WorkUnit newWorkUnit = new WorkUnit();
-//            newWorkUnit.getRequestInstants().addAll(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
-//            newWorkUnit.getRequestInstants().addAll(workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
-//
-            return new WorkUnit(Stream.concat(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)), workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice))).collect(toList()));
+            return new WorkUnit(Stream.concat(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)),
+                    workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice))).collect(toList()));
         });
         return currentUnit.getRequestInstants().stream().anyMatch(unit -> ri.getUuid().equals(unit.getUuid()));
     }

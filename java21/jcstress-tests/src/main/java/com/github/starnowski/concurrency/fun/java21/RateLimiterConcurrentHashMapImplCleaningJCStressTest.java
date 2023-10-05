@@ -6,9 +6,11 @@ import org.openjdk.jcstress.infra.results.I_Result;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.Collections.singletonList;
 import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
 import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 
@@ -30,9 +32,8 @@ public class RateLimiterConcurrentHashMapImplCleaningJCStressTest {
     public RateLimiterConcurrentHashMapImplCleaningJCStressTest()
     {
         rateLimiter = new RateLimiterConcurrentHashMapImpl(Clock.systemUTC(), 1, Duration.ofSeconds(60));
-        RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit();
         Instant oldInstant = Instant.now().minus(Duration.ofMinutes(10));
-        workUnit.getRequestInstants().add(new RateLimiterConcurrentHashMapImpl.RequestInstantWithUUID(oldInstant, UUID.randomUUID()));
+        RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit(singletonList(new RateLimiterConcurrentHashMapImpl.RequestInstantWithUUID(oldInstant, UUID.randomUUID())));
         rateLimiter.getMap().put(RateLimiterConcurrentHashMapImpl.prepareKey(userAgent, ipAddress), workUnit);
     }
 

@@ -87,7 +87,7 @@ class RateLimiterConcurrentHashMapImplTest extends Specification {
             clock.instant() >>> [instant]
             def tested = new RateLimiterConcurrentHashMapImpl(clock, 2, Duration.ofSeconds(1000))
             RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit(singletonList(oldInstant))
-            tested.getMap().put(RateLimiterImpl.prepareKey("x1", "0.0.0.0"), workUnit)
+            tested.getMap().put(RateLimiterConcurrentHashMapImpl.prepareKey("x1", "0.0.0.0"), workUnit)
 
         when:
             tested.cleanOldWorkUnits()
