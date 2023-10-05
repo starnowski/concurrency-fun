@@ -59,11 +59,18 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
     }
 
     public void cleanOldWorkUnits() {
+        Instant instant = this.clock.instant();
+        Instant beginningOfSlice = instant.minus(this.slicePeriod);
+        WorkUnit emptyWorkUnit = new WorkUnit(null);
+        for (Map.Entry<Key, WorkUnit> entry : map.entrySet()) {
+            map.merge(entry.getKey(), emptyWorkUnit, (workUnit, workUnit2) ->
+                    new WorkUnit(workUnit.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList())));
+            map.remove(entry.getKey(), emptyWorkUnit);
+        }
     }
 
     static class WorkUnit {
 
-        //TODO do immutable object
         private final List<RequestInstantWithUUID> requestInstants;
 
         public WorkUnit(List<RequestInstantWithUUID> requestInstants) {

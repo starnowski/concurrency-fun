@@ -8,6 +8,7 @@ import java.time.Duration
 import java.time.Instant
 
 import static java.util.Collections.singletonList
+import static java.util.UUID.randomUUID
 
 class RateLimiterConcurrentHashMapImplTest extends Specification {
 
@@ -86,7 +87,7 @@ class RateLimiterConcurrentHashMapImplTest extends Specification {
             def oldInstant = instant.minus(Duration.ofSeconds(1001))
             clock.instant() >>> [instant]
             def tested = new RateLimiterConcurrentHashMapImpl(clock, 2, Duration.ofSeconds(1000))
-            RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit(singletonList(oldInstant))
+            RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit(singletonList(new RateLimiterConcurrentHashMapImpl.RequestInstantWithUUID(oldInstant, randomUUID())))
             tested.getMap().put(RateLimiterConcurrentHashMapImpl.prepareKey("x1", "0.0.0.0"), workUnit)
 
         when:
