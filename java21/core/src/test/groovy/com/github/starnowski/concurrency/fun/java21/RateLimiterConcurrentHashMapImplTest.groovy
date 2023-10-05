@@ -76,4 +76,22 @@ class RateLimiterConcurrentHashMapImplTest extends Specification {
         then:
             result
     }
+
+    def "should clean old request instants when work unit contains only old instants" () {
+        given:
+            def clock = Mock(Clock)
+            def instant = Instant.now()
+            def oldInstant = instant.minus(Duration.ofSeconds(1001))
+            clock.instant() >>> [instant]
+            def tested = new RateLimiterConcurrentHashMapImpl(clock, 2, Duration.ofSeconds(1000))
+            RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit()
+            workUnit.getRequestInstants().add(oldInstant)
+            tested.getMap().put(RateLimiterImpl.prepareKey("x1", "0.0.0.0"), workUnit)
+
+        when:
+            tested.cleanOldWorkUnits()
+
+        then:
+            tested.getMap().isEmpty()
+    }
 }

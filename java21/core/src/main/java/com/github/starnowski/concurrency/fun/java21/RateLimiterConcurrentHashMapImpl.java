@@ -62,6 +62,9 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
         return map;
     }
 
+    public void cleanOldWorkUnits() {
+    }
+
     static class WorkUnit {
         //TODO do immutable object
         private final List<RequestInstantWithUUID> requestInstants = new ArrayList<>();
