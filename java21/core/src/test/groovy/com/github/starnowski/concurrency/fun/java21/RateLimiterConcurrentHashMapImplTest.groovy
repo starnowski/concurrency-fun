@@ -7,6 +7,8 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
+import static java.util.Collections.singletonList
+
 class RateLimiterConcurrentHashMapImplTest extends Specification {
 
     def "should accept request when no pair exists" () {
@@ -84,8 +86,7 @@ class RateLimiterConcurrentHashMapImplTest extends Specification {
             def oldInstant = instant.minus(Duration.ofSeconds(1001))
             clock.instant() >>> [instant]
             def tested = new RateLimiterConcurrentHashMapImpl(clock, 2, Duration.ofSeconds(1000))
-            RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit()
-            workUnit.getRequestInstants().add(oldInstant)
+            RateLimiterConcurrentHashMapImpl.WorkUnit workUnit = new RateLimiterConcurrentHashMapImpl.WorkUnit(singletonList(oldInstant))
             tested.getMap().put(RateLimiterImpl.prepareKey("x1", "0.0.0.0"), workUnit)
 
         when:

@@ -3,12 +3,11 @@ package com.github.starnowski.concurrency.fun.java21;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
@@ -37,18 +36,18 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
         Key key = prepareKey(userAgent, ipAddress);
         Instant instant = this.clock.instant();
         Instant beginningOfSlice = instant.minus(this.slicePeriod);
-        WorkUnit workUnit = new WorkUnit();
         RequestInstantWithUUID ri = new RequestInstantWithUUID(instant, UUID.randomUUID());
-        workUnit.getRequestInstants().add(ri);
+        WorkUnit workUnit = new WorkUnit(Collections.singletonList(ri));
         WorkUnit currentUnit = map.merge(key, workUnit, (workUnit1, workUnit2) -> {
             long numberOfAcceptedRequestsX = workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).count();
             if (numberOfAcceptedRequestsX >= maxLimit) {
                 return workUnit1;
             }
-            WorkUnit newWorkUnit = new WorkUnit();
-            newWorkUnit.getRequestInstants().addAll(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
-            newWorkUnit.getRequestInstants().addAll(workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
-            return newWorkUnit;
+//            WorkUnit newWorkUnit = new WorkUnit();
+//            newWorkUnit.getRequestInstants().addAll(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
+//            newWorkUnit.getRequestInstants().addAll(workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)).collect(toList()));
+//
+            return new WorkUnit(Stream.concat(workUnit1.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice)), workUnit2.getRequestInstants().stream().filter(requestInstantWithUUID -> requestInstantWithUUID.getInstant().isAfter(beginningOfSlice))).collect(toList()));
         });
         return currentUnit.getRequestInstants().stream().anyMatch(unit -> ri.getUuid().equals(unit.getUuid()));
     }
@@ -66,8 +65,28 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
     }
 
     static class WorkUnit {
+
         //TODO do immutable object
-        private final List<RequestInstantWithUUID> requestInstants = new ArrayList<>();
+        private final List<RequestInstantWithUUID> requestInstants;
+
+        public WorkUnit(List<RequestInstantWithUUID> requestInstants) {
+            this.requestInstants = Collections.unmodifiableList(ofNullable(requestInstants).orElse(new ArrayList<>()));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            WorkUnit workUnit = (WorkUnit) o;
+
+            return Objects.equals(requestInstants, workUnit.requestInstants);
+        }
+
+        @Override
+        public int hashCode() {
+            return requestInstants != null ? requestInstants.hashCode() : 0;
+        }
 
         List<RequestInstantWithUUID> getRequestInstants() {
             return requestInstants;
@@ -81,6 +100,24 @@ public class RateLimiterConcurrentHashMapImpl implements RateLimiter {
         public RequestInstantWithUUID(Instant instant, UUID uuid) {
             this.instant = instant;
             this.uuid = uuid;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            RequestInstantWithUUID that = (RequestInstantWithUUID) o;
+
+            if (!Objects.equals(instant, that.instant)) return false;
+            return Objects.equals(uuid, that.uuid);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = instant != null ? instant.hashCode() : 0;
+            result = 31 * result + (uuid != null ? uuid.hashCode() : 0);
+            return result;
         }
 
         public Instant getInstant() {
