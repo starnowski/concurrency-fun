@@ -3,6 +3,7 @@ package com.github.starnowski.concurrency.fun.java21;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -36,7 +37,17 @@ public class TemporaryValueStore {
             }
         }
         if (shouldRetrieve) {
-            temporaryValueWrapper = new TemporaryValueWrapper(instant, temporaryValueSupplier.get());
+            boolean lockAcquired = false;
+            try {
+                lockAcquired = supplierLock.tryLock(1000, TimeUnit.MILLISECONDS);
+                temporaryValueWrapper = new TemporaryValueWrapper(instant, temporaryValueSupplier.get());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (lockAcquired) {
+                    supplierLock.unlock();
+                }
+            }
         }
         return temporaryValueWrapper.temporaryValue;
     }
