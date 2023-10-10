@@ -23,21 +23,22 @@ public class TemporaryValueStore {
     public TemporaryValue get()
     {
         boolean shouldRetrieve = false;
+        Instant instant = null;
         if (temporaryValueWrapper == null) {
             shouldRetrieve = true;
+            instant = this.clock.instant();
         }
         else {
             Instant validationTimeout = temporaryValueWrapper.instant.plus(this.temporaryValueWrapper.temporaryValue.getTtl());
-            Instant instant = this.clock.instant();
+            instant = this.clock.instant();
             if (instant.isAfter(validationTimeout)) {
                 shouldRetrieve = true;
             }
         }
         if (shouldRetrieve) {
-
+            temporaryValueWrapper = new TemporaryValueWrapper(instant, temporaryValueSupplier.get());
         }
-        //TODO
-        return temporaryValueSupplier.get();
+        return temporaryValueWrapper.temporaryValue;
     }
 
     public static final class TemporaryValue {

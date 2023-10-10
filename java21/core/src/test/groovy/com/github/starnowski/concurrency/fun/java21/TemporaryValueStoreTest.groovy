@@ -14,10 +14,9 @@ class TemporaryValueStoreTest extends Specification {
             def instant = Instant.now()
             clock.instant() >> instant
             def expectedValue = new TemporaryValueStore.TemporaryValue("XXX", Duration.ofSeconds(300))
-            java.util.function.Supplier< TemporaryValueStore.TemporaryValue> valueSupplier = () -> {
-                expectedValue
-            }
+            java.util.function.Supplier< TemporaryValueStore.TemporaryValue> valueSupplier = Mock(java.util.function.Supplier)
             def tested = new TemporaryValueStore(valueSupplier, clock)
+            1 * valueSupplier.get() >> expectedValue
 
         when:
             def result = tested.get()
@@ -34,6 +33,7 @@ class TemporaryValueStoreTest extends Specification {
             def expectedValue = new TemporaryValueStore.TemporaryValue("XXX", Duration.ofSeconds(300))
             java.util.function.Supplier< TemporaryValueStore.TemporaryValue> valueSupplier = Mock(java.util.function.Supplier)
             def tested = new TemporaryValueStore(valueSupplier, clock)
+            1 * valueSupplier.get() >> expectedValue
             tested.get()
 
         when:
@@ -41,8 +41,5 @@ class TemporaryValueStoreTest extends Specification {
 
         then:
             result == expectedValue
-
-        and: "should invoke internal supplier only once"
-            1 * valueSupplier >> expectedValue
     }
 }
