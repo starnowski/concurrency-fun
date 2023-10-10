@@ -37,7 +37,7 @@ public class TemporaryValueStore {
 
         }
         //TODO
-        return temporaryValueWrapper.temporaryValue;
+        return temporaryValueSupplier.get();
     }
 
     public static final class TemporaryValue {
