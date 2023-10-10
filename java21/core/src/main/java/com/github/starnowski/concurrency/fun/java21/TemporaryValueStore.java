@@ -40,9 +40,22 @@ public class TemporaryValueStore {
             boolean lockAcquired = false;
             try {
                 lockAcquired = supplierLock.tryLock(1000, TimeUnit.MILLISECONDS);
-                temporaryValueWrapper = new TemporaryValueWrapper(instant, temporaryValueSupplier.get());
+                if (lockAcquired) {
+                    boolean tryRetrieve = false;
+                    if (temporaryValueWrapper == null) {
+                        tryRetrieve = true;
+                    } else {
+                        Instant validationTimeout = temporaryValueWrapper.instant.plus(this.temporaryValueWrapper.temporaryValue.getTtl());
+                        if (instant.isAfter(validationTimeout)) {
+                            tryRetrieve = true;
+                        }
+                    }
+                    if (tryRetrieve) {
+                        temporaryValueWrapper = new TemporaryValueWrapper(instant, temporaryValueSupplier.get());
+                    }
+                }
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                // do nothing
             } finally {
                 if (lockAcquired) {
                     supplierLock.unlock();
