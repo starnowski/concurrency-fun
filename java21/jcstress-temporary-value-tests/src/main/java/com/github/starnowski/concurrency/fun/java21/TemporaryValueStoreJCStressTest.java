@@ -13,7 +13,7 @@ import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
 import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 
 @JCStressTest
-@Outcome(id = "1", expect = ACCEPTABLE, desc = "Only one rate accepted.")
+@Outcome(id = "1", expect = ACCEPTABLE, desc = "Supplier was invoked once but values for both actors are matches")
 @Outcome(id = "-1", expect = FORBIDDEN, desc = "Supplier was not invoked once but values for both actors matches")
 @Outcome(id = "-2", expect = FORBIDDEN, desc = "Supplier was invoked once but values for both actors are not matches")
 @Outcome(id = "-3", expect = FORBIDDEN, desc = "Supplier was not invoked once but values for both actors are not matches")
@@ -62,7 +62,7 @@ public class TemporaryValueStoreJCStressTest {
     private boolean doesInvocationNumberCorrect(int expectedCount)
     {
         try {
-            Mockito.verify(temporaryValueSupplier.get(), Mockito.times(expectedCount));
+            Mockito.verify(temporaryValueSupplier, Mockito.times(expectedCount)).get();
             return true;
         } catch (RuntimeException runtimeException) {
             return false;
