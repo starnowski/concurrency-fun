@@ -11,6 +11,7 @@
     <modules>
         <module>jcstress-tests</module>
         <module>core</module>
+        <module>jcstress-temporary-value-tests</module>
     </modules>
 
     <properties>
