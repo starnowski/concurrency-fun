@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static org.mockito.Mockito.*;
 import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
 import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 
@@ -19,19 +20,19 @@ import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 @Outcome(id = "-3", expect = FORBIDDEN, desc = "Supplier was not invoked once but values for both actors are not matches")
 @State
 @Description("TemporaryValueStore is executed by two actors that are trying to get temporary value that was not initialized yet")
-public class TemporaryValueStoreJCStressTest {
+public class TemporaryValueStoreWithoutAnyValueJCStressTest {
 
     private TemporaryValueStore tested;
     private TemporaryValueStore.TemporaryValue value;
     private Supplier<TemporaryValueStore.TemporaryValue> temporaryValueSupplier;
     private final TemporaryValueStore.TemporaryValue[] temporaryValues = new TemporaryValueStore.TemporaryValue[2];
 
-    public TemporaryValueStoreJCStressTest()
+    public TemporaryValueStoreWithoutAnyValueJCStressTest()
     {
-        temporaryValueSupplier = Mockito.mock(Supplier.class);
+        temporaryValueSupplier = mock(Supplier.class);
         value = new TemporaryValueStore.TemporaryValue("Value", Duration.ofSeconds(1000));
         tested = new TemporaryValueStore(temporaryValueSupplier, Clock.systemUTC());
-        Mockito.when(temporaryValueSupplier.get()).thenReturn(value);
+        when(temporaryValueSupplier.get()).thenReturn(value);
     }
 
     @Actor
@@ -62,7 +63,7 @@ public class TemporaryValueStoreJCStressTest {
     private boolean doesInvocationNumberCorrect(int expectedCount)
     {
         try {
-            Mockito.verify(temporaryValueSupplier, Mockito.times(expectedCount)).get();
+            verify(temporaryValueSupplier, Mockito.times(expectedCount)).get();
             return true;
         } catch (RuntimeException runtimeException) {
             return false;
