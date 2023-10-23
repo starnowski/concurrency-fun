@@ -35,12 +35,19 @@ jobs:
         java-version: '8'
         distribution: 'temurin'
         cache: maven
+    - uses: actions/setup-java@v3
+      name: Set up JDK 17
+      id: setupJava17
+      with:
+        distribution: 'zulu' # See 'Supported distributions' for available options
+        java-version: '17'
     - uses: cactuslab/maven-toolchains-xml-action@v1
       with:
         toolchains: |
           [
           {"jdkVersion": "8", "jdkHome": "${{steps.setupJava8.outputs.path}}"},
-          {"jdkVersion": "11", "jdkHome": "${{steps.setupJava11.outputs.path}}"}
+          {"jdkVersion": "11", "jdkHome": "${{steps.setupJava11.outputs.path}}"},
+          {"jdkVersion": "17", "jdkHome": "${{steps.setupJava17.outputs.path}}"}
           ]
     - name: Build with Maven
       run: cd java21 && mvn -B package --file pom.xml
