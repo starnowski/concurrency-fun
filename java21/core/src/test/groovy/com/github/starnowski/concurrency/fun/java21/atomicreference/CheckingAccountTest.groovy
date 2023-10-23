@@ -60,9 +60,27 @@ class CheckingAccountTest extends Specification {
 
         where:
         current | value || expected
-        BigDecimal.valueOf(0.0) | BigDecimal.valueOf(1) || BigDecimal.valueOf(-1.0)
+        BigDecimal.valueOf(1.0) | BigDecimal.valueOf(1) || BigDecimal.valueOf(0.0)
         BigDecimal.valueOf(14.00) | BigDecimal.valueOf(5.00) || BigDecimal.valueOf(9.00)
     }
+
+    @Unroll
+    def "should throw exception when withdraw passed amount #value can not be done based on current balance based #current"() {
+        given:
+            def tested = new CheckingAccount(current)
+
+        when:
+            tested.withdraw(value)
+
+        then:
+            def ex = thrown(Account.WithdrawException)
+
+        where:
+            current | value
+            BigDecimal.valueOf(0.0) | BigDecimal.valueOf(1)
+            BigDecimal.valueOf(12.00) | BigDecimal.valueOf(14.00)
+    }
+
 //    Given a client makes a deposit of 2000 on 22-08-2022
 //
 //    And a withdrawal of 500 on 24-08-2022

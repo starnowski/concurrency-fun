@@ -8,7 +8,9 @@ public interface Account {
 
     BigDecimal deposit(BigDecimal amount);
 
-    BigDecimal withdraw(BigDecimal amount);
+    BigDecimal withdraw(BigDecimal amount) throws WithdrawException;
 
     String  printStatement();
+
+    class WithdrawException extends Exception{}
 }

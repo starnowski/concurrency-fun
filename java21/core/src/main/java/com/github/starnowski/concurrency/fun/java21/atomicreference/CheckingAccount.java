@@ -36,7 +36,10 @@ public class CheckingAccount implements Account{
     }
 
     @Override
-    public BigDecimal withdraw(BigDecimal amount) {
+    public BigDecimal withdraw(BigDecimal amount) throws WithdrawException {
+        if (this.current.get().subtract(amount).compareTo(BigDecimal.ZERO) == -1) {
+            throw new WithdrawException();
+        }
         this.current.set(this.current.get().subtract(amount));
         this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), Operation.WITHDRAWAL, amount, this.current.get()));
         return currentBalance();
@@ -52,10 +55,10 @@ public class CheckingAccount implements Account{
         return null;
     }
 
-    static enum Operation {
+    enum Operation {
         DEPOSIT,
-        WITHDRAWAL //TODO
+        WITHDRAWAL
     }
 
-    static record OperationLog(LocalDate localDate, Operation operation, BigDecimal amount, BigDecimal balance){}
+    record OperationLog(LocalDate localDate, Operation operation, BigDecimal amount, BigDecimal balance){}
 }
