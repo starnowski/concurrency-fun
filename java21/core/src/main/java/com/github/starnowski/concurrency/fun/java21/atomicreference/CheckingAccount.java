@@ -31,7 +31,12 @@ public class CheckingAccount implements Account{
 
     @Override
     public BigDecimal deposit(BigDecimal amount) {
-        this.current.set(this.current.get().add(amount));
+        boolean valueChanged = false;
+        do
+        {
+            BigDecimal currentValue = this.current.get();
+            valueChanged = this.current.compareAndSet(currentValue, currentValue.add(amount));
+        } while (!valueChanged);
         this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), CheckingAccount.Operation.DEPOSIT, amount, this.current.get()));
         return currentBalance();
     }
