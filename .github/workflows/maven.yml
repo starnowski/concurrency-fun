@@ -55,3 +55,5 @@ jobs:
       run: cd java21/jcstress-tests/target && "${{steps.setupJava11.outputs.path}}/bin/java" -jar jcstress.jar -v
     - name: Running stress tests for temporary value
       run: cd java21/jcstress-temporary-value-tests/target && "${{steps.setupJava11.outputs.path}}/bin/java" -jar jcstress.jar -v
+    - name: Running stress tests for atomicreference
+      run: cd java21/jcstress-atomicreference/target && "${{steps.setupJava11.outputs.path}}/bin/java" -jar jcstress.jar -v
