@@ -12,6 +12,7 @@
         <module>jcstress-tests</module>
         <module>core</module>
         <module>jcstress-temporary-value-tests</module>
+        <module>jcstress-atomicreference</module>
     </modules>
 
     <properties>

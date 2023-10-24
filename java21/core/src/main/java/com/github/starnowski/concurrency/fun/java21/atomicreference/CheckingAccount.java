@@ -6,13 +6,14 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CheckingAccount implements Account{
 
     private final AtomicReference<BigDecimal> current;
     private final Clock clock;
-    private final List<OperationLog> logs = new ArrayList<>();
+    private final List<OperationLog> logs = new CopyOnWriteArrayList<>();
 
     public CheckingAccount(BigDecimal bigDecimal) {
         this(bigDecimal, Clock.systemUTC());
