@@ -28,7 +28,7 @@ public class CheckingAccountDoubleWithdrawJCStressTest {
         try {
             tested.withdraw(BigDecimal.valueOf(10));
         } catch (Account.WithdrawException e) {
-            throw new RuntimeException(e);
+            //throw new RuntimeException(e);
         }
     }
 
@@ -37,7 +37,7 @@ public class CheckingAccountDoubleWithdrawJCStressTest {
         try {
             tested.withdraw(BigDecimal.valueOf(30));
         } catch (Account.WithdrawException e) {
-            throw new RuntimeException(e);
+            //throw new RuntimeException(e);
         }
     }
 

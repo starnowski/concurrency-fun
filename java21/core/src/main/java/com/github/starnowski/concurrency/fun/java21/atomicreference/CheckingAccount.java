@@ -31,7 +31,7 @@ public class CheckingAccount implements Account{
 
     @Override
     public BigDecimal deposit(BigDecimal amount) {
-        boolean valueChanged = false;
+        boolean valueChanged;
         do
         {
             BigDecimal currentValue = this.current.get();
@@ -43,10 +43,14 @@ public class CheckingAccount implements Account{
 
     @Override
     public BigDecimal withdraw(BigDecimal amount) throws WithdrawException {
-        if (this.current.get().subtract(amount).compareTo(BigDecimal.ZERO) == -1) {
-            throw new WithdrawException();
-        }
-        this.current.set(this.current.get().subtract(amount));
+        boolean valueChanged;
+        {
+            BigDecimal currentValue = this.current.get();
+            if (currentValue.subtract(amount).compareTo(BigDecimal.ZERO) == -1) {
+                throw new WithdrawException();
+            }
+            valueChanged = this.current.compareAndSet(currentValue, currentValue.subtract(amount));
+        } while (!valueChanged);
         this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), Operation.WITHDRAWAL, amount, this.current.get()));
         return currentBalance();
     }
