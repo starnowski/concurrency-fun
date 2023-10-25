@@ -32,26 +32,28 @@ public class CheckingAccount implements Account{
     @Override
     public BigDecimal deposit(BigDecimal amount) {
         boolean valueChanged;
+        BigDecimal currentValue;
         do
         {
-            BigDecimal currentValue = this.current.get();
+            currentValue = this.current.get();
             valueChanged = this.current.compareAndSet(currentValue, currentValue.add(amount));
         } while (!valueChanged);
-        this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), CheckingAccount.Operation.DEPOSIT, amount, this.current.get()));
+        this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), CheckingAccount.Operation.DEPOSIT, amount, currentValue.add(amount)));
         return currentBalance();
     }
 
     @Override
     public BigDecimal withdraw(BigDecimal amount) throws WithdrawException {
         boolean valueChanged;
-        {
-            BigDecimal currentValue = this.current.get();
+        BigDecimal currentValue;
+                {
+            currentValue = this.current.get();
             if (currentValue.subtract(amount).compareTo(BigDecimal.ZERO) == -1) {
                 throw new WithdrawException();
             }
             valueChanged = this.current.compareAndSet(currentValue, currentValue.subtract(amount));
         } while (!valueChanged);
-        this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), Operation.WITHDRAWAL, amount, this.current.get()));
+        this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), Operation.WITHDRAWAL, amount, currentValue.subtract(amount)));
         return currentBalance();
     }
 
