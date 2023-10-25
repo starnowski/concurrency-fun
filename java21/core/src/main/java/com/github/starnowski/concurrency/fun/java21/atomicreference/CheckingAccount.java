@@ -4,12 +4,11 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class CheckingAccount implements Account{
+public class CheckingAccount implements Account {
 
     private final AtomicReference<BigDecimal> current;
     private final Clock clock;
@@ -33,8 +32,7 @@ public class CheckingAccount implements Account{
     public BigDecimal deposit(BigDecimal amount) {
         boolean valueChanged;
         BigDecimal currentValue;
-        do
-        {
+        do {
             currentValue = this.current.get();
             valueChanged = this.current.compareAndSet(currentValue, currentValue.add(amount));
         } while (!valueChanged);
@@ -46,18 +44,19 @@ public class CheckingAccount implements Account{
     public BigDecimal withdraw(BigDecimal amount) throws WithdrawException {
         boolean valueChanged;
         BigDecimal currentValue;
-                {
+        {
             currentValue = this.current.get();
             if (currentValue.subtract(amount).compareTo(BigDecimal.ZERO) == -1) {
                 throw new WithdrawException();
             }
             valueChanged = this.current.compareAndSet(currentValue, currentValue.subtract(amount));
-        } while (!valueChanged);
+        }
+        while (!valueChanged) ;
         this.logs.add(new CheckingAccount.OperationLog(LocalDate.ofInstant(this.clock.instant(), ZoneId.systemDefault()), Operation.WITHDRAWAL, amount, currentValue.subtract(amount)));
         return currentBalance();
     }
 
-    List<OperationLog> getLogs(){
+    List<OperationLog> getLogs() {
         return this.logs;
     }
 
@@ -72,5 +71,6 @@ public class CheckingAccount implements Account{
         WITHDRAWAL
     }
 
-    record OperationLog(LocalDate localDate, Operation operation, BigDecimal amount, BigDecimal balance){}
+    record OperationLog(LocalDate localDate, Operation operation, BigDecimal amount, BigDecimal balance) {
+    }
 }
