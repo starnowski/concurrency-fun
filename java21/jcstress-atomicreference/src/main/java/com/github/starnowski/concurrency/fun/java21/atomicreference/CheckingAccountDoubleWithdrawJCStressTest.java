@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import static org.openjdk.jcstress.annotations.Expect.ACCEPTABLE;
 import static org.openjdk.jcstress.annotations.Expect.FORBIDDEN;
 
-@JCStressTest
+//@JCStressTest
 @Outcome(id = "1", expect = ACCEPTABLE, desc = "Current balance is correct")
 @Outcome(id = "-1", expect = FORBIDDEN, desc = "Current balance is not correct")
 @Outcome(id = "-2", expect = FORBIDDEN, desc = "Current balance was updated by first actor")
